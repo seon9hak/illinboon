@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Sleep/Wake Quest V5.5 - Swap Actions Compact UI</title>
+<title>Sleep/Wake Quest V5.5 - Clear Actions</title>
 <style>
 :root{
   --bg:#050817; --panel:#0b1231; --text:#f7f2ff; --muted:#aab3d9;
@@ -216,8 +216,10 @@ body{
   </div>
     <div id="rhythmText" class="rhythmLabel">100%</div>
   </div>
+  <div id="modeHelp" class="modeHelp">Q 전환 · 졸음구름=번개 타이밍 · 생각벌레=베개 연타</div>
 
   <div id="actionZone" class="actionZone">
+    <div id="actionHint" class="actionHint">타깃 없음</div>
     <div id="progressRing" class="progressRing"></div>
     <div id="actionBtn" class="actionBtn">
       <div><div id="actionIcon" class="actionIcon">⚡</div><div id="actionLabel">연타!</div></div>
@@ -251,10 +253,10 @@ body{
 
   <div class="bottom">
     <div class="panel mission">
-      <div class="small">현재 접수 신호</div>
+      <div class="small">해야 할 일</div>
       <div id="targetTitle" class="title">타깃 없음</div>
-      <div id="targetDesc" class="small">접수된 신호가 없습니다.</div>
-      <div class="small">최근 신호는 오른쪽 로그에 기록됩니다.</div>
+      <div id="targetDesc" class="small">대기 중 · 신호가 뜨면 가까이 가세요</div>
+      <div class="small">타깃이 잡히면 버튼 안내가 바뀝니다.</div>
     </div>
     <div class="controls">
       <div class="stick">
@@ -298,7 +300,7 @@ body{
 
 <script>
 const world=document.getElementById('world'), rangeRing=document.getElementById('rangeRing');
-const actionZone=document.getElementById('actionZone'), progressRing=document.getElementById('progressRing');
+const actionZone=document.getElementById('actionZone'), progressRing=document.getElementById('progressRing'), actionHint=document.getElementById('actionHint'), modeHelp=document.getElementById('modeHelp');
 const actionBtn=document.getElementById('actionBtn'), actionIcon=document.getElementById('actionIcon'), actionLabel=document.getElementById('actionLabel'), tapText=document.getElementById('tapText');
 const timingNeedle=document.getElementById('timingNeedle');
 const beam=document.getElementById('beam'), flash=document.getElementById('flash'), toast=document.getElementById('toast');
@@ -374,7 +376,7 @@ function updateMonsterEl(m){
   m.fill.style.width=(m.ttl/m.maxTtl*100)+'%';
   if(m.ttlText)m.ttlText.textContent=Math.ceil(m.ttl)+'s';
   m.el.className=`monster ${m.type} level${m.level}${selected===m?' locked':''}`;
-  m.tag.textContent=`${m.name} Lv.${m.level}`;
+  m.tag.textContent=m.type==='wake'?'⚡ 타이밍':'🛏️ 연타';
 }
 function removeMonster(m,expired=false){
   if(expired){m.el.classList.add('expire');setTimeout(()=>m.el.remove(),300)}else m.el.remove();
@@ -445,15 +447,15 @@ function select(m){
     m.el.classList.add('locked');
     actionZone.className='actionZone show '+m.type;
     updateModeUI();
-    document.getElementById('targetTitle').textContent=(m.type==='wake'?'WAKE · ':'SLEEP · ')+`${m.name} Lv.${m.level}`;
+    document.getElementById('targetTitle').textContent=(m.type==='wake'?'⚡ 번개 타이밍 · ':'🛏️ 베개 연타 · ')+`${m.name}`;
     document.getElementById('targetTitle').className='title '+m.type;
     const rangeTxt=edgeRatio(m)>.82?' · 이탈 임박':'';
     document.getElementById('targetDesc').textContent=m.type==='wake'
-      ? '졸음구름은 반경 밖으로 도망갑니다. 번개 타이밍으로 깨우세요.'+rangeTxt
-      : '생각벌레는 베개 연타로 진정시키세요.'+rangeTxt;
+      ? '초록 영역에 바늘이 들어오면 번개 버튼을 누르세요.'+rangeTxt
+      : '베개 버튼을 빠르게 연타해서 잡생각을 가라앉히세요.'+rangeTxt;
   }else{
     actionZone.className='actionZone';
-    document.getElementById('targetTitle').textContent='타깃 없음';
+    document.getElementById('targetTitle').textContent='대기 중';
     document.getElementById('targetTitle').className='title';
     document.getElementById('targetDesc').textContent='몬스터에게 접근하세요. 반경 밖으로 나가면 놓친 신호로 기록.';
   }
@@ -471,7 +473,7 @@ function currentModeForAction(){
 }
 function useAction(){
   if(!started||ended)return;
-  if(!selected){miss('타깃 없음');return}
+  if(!selected){return}
   const mode=currentModeForAction();
   if(mode!==selected.type){wrongMode(selected,mode);return}
   if(mode==='wake') tapWakeTiming();
@@ -489,8 +491,8 @@ function tapWakeTiming(){
   }else{
     action.progress=clamp(action.progress-8,0,100);
     res.combo=Math.max(0,res.combo-1);
-    burst(selected.x,selected.y,'MISS','var(--red)');
-    showToast('타이밍 실패', 'bad');
+    burst(selected.x,selected.y,'다시','var(--red)');
+    showToast('다시!', 'bad');
     log('각성 타이밍 실패!', '초록 영역에 바늘이 들어왔을 때 번개를 누르세요.', '판정은 넓게 조정됨.');
   }
   updateActionRing();
@@ -510,10 +512,10 @@ function wrongMode(m,mode){
   if(m.level<3)m.level++;
   if(m.type==='wake'){
     m.ttl=clamp(m.ttl+3,0,m.maxTtl+4); m.vx*=1.35; m.vy*=1.35;
-    showToast('숙면 악화!', 'bad'); log('잘못된 모드!', '졸음구름에게 베개 사용 → 더 깊이 졸아 도망 속도 증가', '모드 전환을 확인하세요.');
+    showToast('모드 확인!', 'bad'); log('졸음구름은 번개 타이밍!', 'Q로 번개 모드로 바꾼 뒤 초록 영역에 맞춰 누르세요.', '베개는 생각벌레에게 사용.');
   }else{
     m.shotCd=.25;
-    showToast('과각성!', 'bad'); log('잘못된 모드!', '생각벌레에게 번개 사용 → 생각탄 빈도 증가', '모드 전환을 확인하세요.');
+    showToast('모드 확인!', 'bad'); log('생각벌레는 베개 연타!', 'Q로 베개 모드로 바꾼 뒤 빠르게 연타하세요.', '번개는 졸음구름에게 사용.');
   }
   updateMonsterEl(m); updateHUD();
 }
@@ -579,9 +581,17 @@ function updateModeUI(){
   badge.className='pill resource modeBadge '+mode+(res.auto>0?' auto':'');
   badge.textContent=(mode==='wake'?'⚡ 번개':'🛏️ 베개')+(res.auto>0?' AUTO':'');
   document.getElementById('skillIcon').textContent=mode==='wake'?'⚡':'🛏️';
-  document.getElementById('skillText').textContent=mode==='wake'?'타이밍':'연타';
+  document.getElementById('skillText').textContent=mode==='wake'?'번개 타이밍':'베개 연타';
   skill.className='skill '+mode;
-  if(selected){actionIcon.textContent=mode==='wake'?'⚡':'🛏️'; actionLabel.textContent=mode==='wake'?'타이밍!':'연타!'; tapText.textContent=mode==='wake'?'초록 영역에 맞춰 탭!':'빠르게 베개 연타!'}
+  if(selected){
+    actionIcon.textContent=mode==='wake'?'⚡':'🛏️';
+    actionLabel.textContent=mode==='wake'?'타이밍!':'연타!';
+    tapText.textContent=mode==='wake'?'초록 영역에 맞춰 탭!':'빠르게 베개 연타!';
+    actionHint.textContent=selected.type==='wake'?'졸음구름: 번개 타이밍':'생각벌레: 베개 연타';
+  }else{
+    actionHint.textContent='타깃 없음';
+  }
+  modeHelp.textContent=res.auto>0?'AUTO 전환 중 · 가까운 신호에 맞춰 자동 모드':'Q 전환 · 졸음구름=번개 타이밍 · 생각벌레=베개 연타';
 }
 function updateHUD(){
   document.getElementById('thumbCount').textContent=res.thumbs;
