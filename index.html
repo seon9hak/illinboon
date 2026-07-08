@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>근성이 수면 비상센터 V6</title>
+<title>근성이 수면 비상센터 V6.1</title>
 <style>
 :root{--bg:#07080d;--panel:#12131d;--text:#f4eef8;--muted:#aaa0b2;--yellow:#ffd35a;--blue:#9ec4ff;--green:#76efb7;--red:#ff6464;--purple:#c7a2ff}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05060a;color:var(--text);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;user-select:none}
@@ -23,36 +23,104 @@
 .toast{position:absolute;left:50%;top:23%;transform:translate(-50%,-50%) scale(.9);z-index:110;opacity:0;pointer-events:none;transition:.16s;background:rgba(8,9,17,.94);border:3px solid #05060a;border-radius:16px;padding:14px 22px;font-size:26px;font-weight:1000;box-shadow:0 10px 0 rgba(0,0,0,.26)}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .start{position:absolute;inset:0;z-index:130;background:rgba(5,6,10,.82);display:grid;place-items:center}.card{width:min(720px,92vw);padding:24px;border-radius:16px;text-align:center}.card h1{margin:0 0 8px;font-size:36px}.card p{color:var(--muted);font-weight:850;line-height:1.65}.startbtn{margin-top:14px;border:3px solid #05060a;background:linear-gradient(#ffe28a,#d99f33);color:#100f13;font-size:20px;font-weight:1000;border-radius:12px;padding:14px 22px;cursor:pointer;box-shadow:0 8px 0 #6c4e18}.startbtn:active{transform:translateY(5px);box-shadow:0 3px 0 #6c4e18}
 .scan{position:absolute;inset:0;pointer-events:none;z-index:80;opacity:.07;background:repeating-linear-gradient(0deg,transparent 0 3px,#fff 3px 4px)}.vig{position:absolute;inset:0;pointer-events:none;z-index:70;box-shadow:inset 0 0 140px rgba(0,0,0,.82)}
+
+.tool{touch-action:none}
+.tool.dragging{opacity:.45;transform:translateY(4px) scale(.96)}
+.dragGhost{
+  position:absolute;z-index:150;pointer-events:none;
+  width:62px;height:62px;border-radius:14px;
+  display:grid;place-items:center;
+  font-size:34px;
+  background:rgba(18,20,31,.96);
+  border:3px solid #05060a;
+  box-shadow:0 8px 0 rgba(0,0,0,.35),0 0 24px rgba(255,211,90,.2);
+  transform:translate(-50%,-50%);
+}
+.soul.dropTarget .body{outline:4px solid var(--yellow);outline-offset:5px}
+.soul.dropBad .body{outline:4px solid var(--red);outline-offset:5px}
+
 @media(max-width:900px){#dungeon{width:100vw;height:100vh;border:0}.floor{inset:86px 10px 96px}.topbar{grid-template-columns:1fr;left:10px;right:10px;gap:6px}.clock{display:none}.stats{justify-self:start;flex-wrap:wrap}.stat{font-size:12px;padding:6px 8px}.side{display:none}.toolbar{bottom:16px}.tool{width:82px;height:60px}}
 </style>
 </head>
 <body>
 <div id="game"><div id="dungeon">
 <div class="wall top"></div><div class="wall bottom"></div><div class="wall left"></div><div class="wall right"></div><div id="floor" class="floor"></div>
-<div class="topbar"><div class="panel title">근성이 수면 비상센터<small>고전 던전 감시 모드 · 신호별 제한시간</small></div><div class="panel clock"><div id="clockText" class="time">--:--</div><div id="statusText" class="status">감시 상태: 정상</div></div><div class="stats"><div class="panel stat">오늘 따봉 <span id="dailyThumbs">0</span></div><div class="panel stat">누적 따봉 <span id="totalThumbs">0</span></div><div class="panel stat">놓친 영혼 <span id="missedSouls">0</span></div></div></div>
-<div class="side"><div class="panel info"><div class="k">선택 대상</div><div id="infoId" class="id">NONE</div><div id="infoState" class="line"><span>상태</span> 대기 중</div><div id="infoNeed" class="line"><span>필요 처방</span> -</div><div id="infoTime" class="line"><span>제한시간</span> -</div></div><div class="panel log"><b>최근 로그</b><div id="log1">센터 가동 대기 중</div><div id="log2">영혼 신호 대기 중</div><div id="log3">처방 아이콘을 먼저 선택하세요</div></div></div>
-<div class="toolbar"><button id="toolInjection" class="tool sel" data-tool="injection"><span class="i">💉</span><span class="l">주사</span></button><button id="toolPill" class="tool" data-tool="pill"><span class="i">💊</span><span class="l">알약</span></button></div>
+<div class="topbar"><div class="panel title">근성이 수면 비상센터<small>고전 던전 감시 모드 · 드래그 처방</small></div><div class="panel clock"><div id="clockText" class="time">--:--</div><div id="statusText" class="status">감시 상태: 정상</div></div><div class="stats"><div class="panel stat">오늘 따봉 <span id="dailyThumbs">0</span></div><div class="panel stat">누적 따봉 <span id="totalThumbs">0</span></div><div class="panel stat">놓친 영혼 <span id="missedSouls">0</span></div></div></div>
+<div class="side"><div class="panel info"><div class="k">선택 대상</div><div id="infoId" class="id">NONE</div><div id="infoState" class="line"><span>상태</span> 대기 중</div><div id="infoNeed" class="line"><span>필요 처방</span> -</div><div id="infoTime" class="line"><span>제한시간</span> -</div></div><div class="panel log"><b>최근 로그</b><div id="log1">센터 가동 대기 중</div><div id="log2">영혼 신호 대기 중</div><div id="log3">주사/알약을 영혼에게 드래그하세요</div></div></div>
+<div class="toolbar"><button id="toolInjection" class="tool" data-tool="injection"><span class="i">💉</span><span class="l">주사</span></button><button id="toolPill" class="tool" data-tool="pill"><span class="i">💊</span><span class="l">알약</span></button></div>
 </div>
 <div id="tapModal" class="modal"><div class="panel tap"><h2>영혼 안정화</h2><p>대상 <b id="tapTarget">ET0000</b> · 마우스로 연타하세요</p><div id="tapArea" class="taparea"><div class="tapbtn">CLICK</div></div><div class="gauge"><div id="tapGaugeFill" class="gfill"></div></div><button id="tapCancel" class="cancel">취소</button></div></div>
 <div id="toast" class="toast">신호 접수</div>
-<div id="startOverlay" class="start"><div class="panel card"><h1>근성이 수면 비상센터 V6</h1><p>플레이어 없는 고전 던전 관제형 클릭 게임입니다.<br>영혼이 랜덤하게 출현하면 먼저 <b>주사</b> 또는 <b>알약</b>을 선택하고 영혼에게 처방하세요.<br>졸고 있는 영혼은 주사, 눈을 뜬 영혼은 알약이 필요합니다.<br>맞는 처방 후 연타로 안정화하면 따봉이 생성됩니다.</p><button id="startBtn" class="startbtn">센터 가동</button></div></div>
+<div id="startOverlay" class="start"><div class="panel card"><h1>근성이 수면 비상센터 V6.1</h1><p>플레이어 없는 고전 던전 관제형 클릭 게임입니다.<br>영혼이 랜덤하게 출현하면 <b>주사</b> 또는 <b>알약</b>을 영혼에게 드래그해서 처방하세요.<br>졸고 있는 영혼은 주사, 눈을 뜬 영혼은 알약이 필요합니다.<br>맞는 처방을 드롭한 뒤 연타로 안정화하면 따봉이 생성됩니다.</p><button id="startBtn" class="startbtn">센터 가동</button></div></div>
 <div class="scan"></div><div class="vig"></div></div>
 <script>
 const dungeon=document.getElementById('dungeon'),floor=document.getElementById('floor'),toast=document.getElementById('toast'),tapModal=document.getElementById('tapModal'),tapTarget=document.getElementById('tapTarget'),tapArea=document.getElementById('tapArea'),tapGaugeFill=document.getElementById('tapGaugeFill');
-let running=false,selectedTool='injection',selectedSoul=null,activeTapSoul=null,tapProgress=0,souls=[],thumbs=[],eventLog=[],spawnTimer=0,nextSpawn=2,nextId=1;
+let running=false,dragTool=null,dragGhost=null,hoverSoul=null,selectedSoul=null,activeTapSoul=null,tapProgress=0,souls=[],thumbs=[],eventLog=[],spawnTimer=0,nextSpawn=2,nextId=1;
 const stats={dailyThumbs:0,totalThumbs:0,missedSouls:0,received:0};
 function rand(a,b){return a+Math.random()*(b-a)}function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function nowLabel(){const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`}
 function clock(){const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function formatTime(sec){const ds=Math.ceil(sec*12),m=Math.floor(ds/60),s=ds%60;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
 function genId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='ET';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
-function pushLog(t){eventLog.unshift(`${nowLabel()}  ${t}`);eventLog=eventLog.slice(0,3);document.getElementById('log1').textContent=eventLog[0]||'센터 가동 대기 중';document.getElementById('log2').textContent=eventLog[1]||'영혼 신호 대기 중';document.getElementById('log3').textContent=eventLog[2]||'처방 아이콘을 먼저 선택하세요'}
+function pushLog(t){eventLog.unshift(`${nowLabel()}  ${t}`);eventLog=eventLog.slice(0,3);document.getElementById('log1').textContent=eventLog[0]||'센터 가동 대기 중';document.getElementById('log2').textContent=eventLog[1]||'영혼 신호 대기 중';document.getElementById('log3').textContent=eventLog[2]||'주사/알약을 영혼에게 드래그하세요'}
 function showToast(t,type='normal'){toast.textContent=t;toast.style.color=type==='bad'?'var(--red)':type==='good'?'var(--green)':type==='blue'?'var(--blue)':'var(--yellow)';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),850)}
-function setTool(tool){selectedTool=tool;document.querySelectorAll('.tool').forEach(t=>t.classList.toggle('sel',t.dataset.tool===tool));showToast(tool==='injection'?'주사 선택':'알약 선택',tool==='pill'?'blue':'normal')}
-document.querySelectorAll('.tool').forEach(btn=>btn.addEventListener('click',()=>setTool(btn.dataset.tool)));
+function toolIcon(tool){return tool==='injection'?'💉':'💊'}
+function startDrag(tool,x,y,source){
+  dragTool=tool;
+  if(source)source.classList.add('dragging');
+  dragGhost=document.createElement('div');
+  dragGhost.className='dragGhost';
+  dragGhost.textContent=toolIcon(tool);
+  document.getElementById('game').appendChild(dragGhost);
+  moveDrag(x,y);
+}
+function moveDrag(x,y){
+  if(!dragGhost)return;
+  dragGhost.style.left=x+'px';
+  dragGhost.style.top=y+'px';
+  const el=document.elementFromPoint(x,y);
+  const soulEl=el?el.closest('.soul'):null;
+  const soul=soulEl?souls.find(s=>s.el===soulEl):null;
+  souls.forEach(s=>s.el.classList.remove('dropTarget','dropBad'));
+  hoverSoul=soul||null;
+  if(hoverSoul){
+    hoverSoul.el.classList.add(hoverSoul.need===dragTool?'dropTarget':'dropBad');
+  }
+}
+function endDrag(source){
+  if(hoverSoul&&dragTool){
+    applyToolToSoul(hoverSoul,dragTool);
+  }
+  souls.forEach(s=>s.el.classList.remove('dropTarget','dropBad'));
+  if(source)source.classList.remove('dragging');
+  if(dragGhost)dragGhost.remove();
+  dragGhost=null;dragTool=null;hoverSoul=null;
+}
+document.querySelectorAll('.tool').forEach(btn=>{
+  btn.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    btn.setPointerCapture(e.pointerId);
+    startDrag(btn.dataset.tool,e.clientX,e.clientY,btn);
+  });
+  btn.addEventListener('pointermove',e=>{if(dragTool)moveDrag(e.clientX,e.clientY)});
+  btn.addEventListener('pointerup',e=>endDrag(btn));
+  btn.addEventListener('pointercancel',e=>endDrag(btn));
+});
 function bounds(){const f=floor.getBoundingClientRect(),d=dungeon.getBoundingClientRect();return{left:f.left-d.left+58,top:f.top-d.top+46,right:f.right-d.left-310,bottom:f.bottom-d.top-58}}
 function spawnSoul(){const b=bounds(),type=Math.random()<.5?'sleepy':'awake',id=genId(),ttl=rand(22,28);const soul={id,type,need:type==='sleepy'?'injection':'pill',x:rand(b.left,b.right),y:rand(b.top,b.bottom),ttl,maxTtl:ttl,resolved:false};const el=document.createElement('div');el.className=`soul ${type}`;el.innerHTML=`<div class="tag">${id}</div><div class="body"><div class="eye l"></div><div class="eye r"></div><div class="mouth"></div></div><div class="mark">${type==='sleepy'?'Zz':'!'}</div><div class="ttl"><div class="fill"></div><div class="txt"></div></div>`;soul.el=el;soul.fill=el.querySelector('.fill');soul.txt=el.querySelector('.txt');el.style.left=soul.x+'px';el.style.top=soul.y+'px';el.addEventListener('click',()=>clickSoul(soul));dungeon.appendChild(el);souls.push(soul);stats.received++;pushLog(`${id} 영혼 접수 · ${type==='sleepy'?'졸림':'과각성'}`);showToast('영혼 신호 접수');nextSpawn=rand(5,10)}
-function clickSoul(s){if(s.resolved)return;selectSoul(s);if(selectedTool!==s.need){s.el.classList.remove('err');void s.el.offsetWidth;s.el.classList.add('err');showToast('처방 오류','bad');pushLog(`${s.id} 처방 오류`);return}openTap(s)}
+function clickSoul(s){if(s.resolved)return;selectSoul(s)}
+function applyToolToSoul(s,tool){
+  if(s.resolved)return;
+  selectSoul(s);
+  if(tool!==s.need){
+    s.el.classList.remove('err');void s.el.offsetWidth;s.el.classList.add('err');
+    showToast('처방 오류','bad');
+    pushLog(`${s.id} 처방 오류`);
+    return;
+  }
+  showToast(tool==='injection'?'주사 처방':'알약 처방',tool==='pill'?'blue':'normal');
+  openTap(s);
+}
 function selectSoul(s){selectedSoul=s;souls.forEach(x=>x.el.classList.toggle('sel',x===s));document.getElementById('infoId').textContent=s.id;document.getElementById('infoState').innerHTML=`<span>상태</span> ${s.type==='sleepy'?'졸림':'과각성'}`;document.getElementById('infoNeed').innerHTML=`<span>필요 처방</span> ${s.need==='injection'?'주사 💉':'알약 💊'}`;document.getElementById('infoTime').innerHTML=`<span>제한시간</span> ${formatTime(s.ttl)}`}
 function openTap(s){activeTapSoul=s;tapProgress=0;tapGaugeFill.style.width='0%';tapTarget.textContent=s.id;tapModal.classList.add('show')}
 function closeTap(){tapModal.classList.remove('show');activeTapSoul=null;tapProgress=0}
